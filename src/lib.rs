@@ -57,26 +57,12 @@ fn test_fixed_key_xor() {
     assert_eq!(hexor(input,key), "000302050407")
 }
 
-const WEIGHTS: [f64; 26] = [8.55, 1.6 , 3.16, 3.87, 12.10, 2.18, 2.09, 4.96, 7.33, 0.22, 0.81, 4.21, 2.53, 7.17, 7.47, 2.07, 0.10, 6.33, 6.73, 8.94, 2.68, 1.06, 1.83, 0.19, 1.72, 0.11 ];
-fn score_string(input : impl AsRef<[u8]>) -> f64 {
+const WEIGHTS: [i32; 26] = [855, 160 , 316, 387, 1210, 218, 209, 496, 733, 22, 81, 421, 253, 717, 747, 207, 10, 633, 673, 894, 268, 106, 183, 19, 172, 11 ];
+fn score_string(input : impl AsRef<[u8]>) -> f32 {
     let input = input.as_ref();
-    //let total = input.iter().map(|c| c.to_ascii_uppercase() - 65).filter(|c| c < 26).fold(0, |acc,idx| acc + WEIGHTS[idx]);
-    let len = input.len();
-    let mut total = 0.0;
-    for c in input.iter() {
-        let idx = c.to_ascii_uppercase() as usize;
+    let total = input.iter().map(|c| c.to_ascii_uppercase() - 65).filter(|c| *c < 26 as u8).fold(0, |acc,idx| acc + WEIGHTS[idx as usize]);
 
-        if idx >= 65 && idx <= 90 {
-            total += WEIGHTS[idx - 65];
-        }
-
-        //let d: char = c as char;
-        //println!("score({d}) = {s}, total = {total}");
-    }
-
-    let ret = total / len as f64;
-    //let s = String::from_utf8(input).unwrap();
-    return ret
+    total as f32 / input.len() as f32
 }
 //#[test] // Test scoring
 //fn test_scoring() {
