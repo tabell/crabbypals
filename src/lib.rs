@@ -1,5 +1,7 @@
 use std::cmp;
-use std::collections::HashMap;
+use bytes::Bytes;
+
+//use std::collections::HashMap;
 
 
 fn hex2bytes(hex_str : &str) -> Vec<u8> {
@@ -15,7 +17,9 @@ pub fn hex2b64(hex_str:&str) -> String {
     return bytes2b64(hex2bytes(hex_str));
 }
 
-fn xor(a : Vec<u8>, b : Vec<u8>) -> Vec<u8> {
+fn xor(a : impl AsRef<[u8]>, b : impl AsRef<[u8]>) -> Vec<u8> {
+    let a = a.as_ref();
+    let b = b.as_ref();
     let mut out = Vec::new();
     let upper = cmp::max(a.len(), b.len());
 
@@ -54,16 +58,42 @@ fn test_fixed_key_xor() {
 }
 
 const WEIGHTS: [f64; 26] = [8.55, 1.6 , 3.16, 3.87, 12.10, 2.18, 2.09, 4.96, 7.33, 0.22, 0.81, 4.21, 2.53, 7.17, 7.47, 2.07, 0.10, 6.33, 6.73, 8.94, 2.68, 1.06, 1.83, 0.19, 1.72, 0.11 ];
-fn score_string(input : &str) -> f64 {
-    for (i, c) in input.chars().enumerate() {
+fn score_string(input : impl AsRef<[u8]>) -> f64 {
+    let input = input.as_ref();
+    //let total = input.iter().map(|c| c.to_ascii_uppercase() - 65).filter(|c| c < 26).fold(0, |acc,idx| acc + WEIGHTS[idx]);
+    let len = input.len();
+    let mut total = 0.0;
+    for c in input.iter() {
+        let idx = c.to_ascii_uppercase() as usize;
+
+        if idx >= 65 && idx <= 90 {
+            total += WEIGHTS[idx - 65];
+        }
+
+        //let d: char = c as char;
+        //println!("score({d}) = {s}, total = {total}");
     }
-    return 0.0;
+
+    let ret = total / len as f64;
+    //let s = String::from_utf8(input).unwrap();
+    return ret
 }
+//#[test] // Test scoring
+//fn test_scoring() {
+//    let score = score_string(<Vec<u8>>::from("ghosts"));
+//    println!("score = {score}");
+//}
 
 #[test] // Set 1 challenge 3
-fn s1c2() {
-    let _input = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736";
-    let score = score_string(_input);
-
+fn test_s1c3() {
+    //let input = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736";
+    //let score = score_string(xor(hex2bytes(input), vec!['a' as u8]));
+    //let score = score_string(xor(<Vec<u8>>::from("ffff"), vec!['a' as u8]));
+    let test_str = b"eeeeEEEE";
+    //let test_str = xor(b"abcdABCD", b"b");
+    let score = score_string(&test_str);
+    //let t_as_ref = test_str.as_ref();
+    //let b = Bytes::from(test_str);
+    println!("string={:?}, score = {score}", test_str.escape_ascii().to_string());
 }
 
