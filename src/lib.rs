@@ -1,5 +1,7 @@
 use std::cmp;
-use bytes::Bytes;
+use std::str;
+use std::collections::BTreeMap;
+
 
 //use std::collections::HashMap;
 
@@ -58,28 +60,39 @@ fn test_fixed_key_xor() {
 }
 
 const WEIGHTS: [i32; 26] = [855, 160 , 316, 387, 1210, 218, 209, 496, 733, 22, 81, 421, 253, 717, 747, 207, 10, 633, 673, 894, 268, 106, 183, 19, 172, 11 ];
-fn score_string(input : impl AsRef<[u8]>) -> f32 {
-    let input = input.as_ref();
-    let total = input.iter().map(|c| c.to_ascii_uppercase() - 65).filter(|c| *c < 26 as u8).fold(0, |acc,idx| acc + WEIGHTS[idx as usize]);
 
-    total as f32 / input.len() as f32
+//fn weight_of(c : impl 
+
+fn weight_of(c: char) -> Option<i32> {
+    let letter = c.to_ascii_uppercase();
+    match letter {
+        'A'..='Z' => Some(WEIGHTS[letter as usize - 'A' as usize]),
+        _ => None,
+    }
 }
-//#[test] // Test scoring
-//fn test_scoring() {
-//    let score = score_string(<Vec<u8>>::from("ghosts"));
-//    println!("score = {score}");
-//}
 
+fn score(letters: impl IntoIterator<Item = char>) -> i32 {
+    letters.into_iter().filter_map(weight_of).sum()
+}
+
+fn score_string(input : Vec<u8>) -> f32 {
+    let len = input.len();
+    let s = match String::from_utf8(input) {
+        Ok(v) => v,
+        Err(e) => panic!("invalid utf8: {}", e),
+    };
+    (score(s.chars()) as f32 / 100_f32) / len as f32
+}
 #[test] // Set 1 challenge 3
 fn test_s1c3() {
-    //let input = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736";
-    //let score = score_string(xor(hex2bytes(input), vec!['a' as u8]));
-    //let score = score_string(xor(<Vec<u8>>::from("ffff"), vec!['a' as u8]));
-    let test_str = b"eeeeEEEE";
-    //let test_str = xor(b"abcdABCD", b"b");
-    let score = score_string(&test_str);
-    //let t_as_ref = test_str.as_ref();
-    //let b = Bytes::from(test_str);
-    println!("string={:?}, score = {score}", test_str.escape_ascii().to_string());
+    let input = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736";
+    let mut potential_keys = BTreeMap::new();
+    //println!("string={:?}, score = {score}", input);
+    for x in 1u8..255 {
+        let c = x as char;
+        let score = score_string(xor(hex2bytes(input), vec!['b' as u8]));
+        potential_keys.insert(score, c);
+    }
+    println!("{:?}", x as char);
 }
 
