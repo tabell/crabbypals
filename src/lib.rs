@@ -1,6 +1,7 @@
 use std::cmp;
 use std::str;
 use std::collections::BTreeMap;
+use ordered_float::NotNan;
 
 
 //use std::collections::HashMap;
@@ -22,6 +23,16 @@ pub fn hex2b64(hex_str:&str) -> String {
 fn xor(a : impl AsRef<[u8]>, b : impl AsRef<[u8]>) -> Vec<u8> {
     let a = a.as_ref();
     let b = b.as_ref();
+    let sa = match str::from_utf8(a) {
+        Ok(v) => v,
+        Err(e) => panic!("Invalid UTF8 {}", e),
+    };
+    let sb = match str::from_utf8(b) {
+        Ok(v) => v,
+        Err(e) => panic!("Invalid UTF8 {}", e),
+    };
+    println!("a: {:?}", sa);
+    println!("b: {:?}", sb);
     let mut out = Vec::new();
     let upper = cmp::max(a.len(), b.len());
 
@@ -88,11 +99,15 @@ fn test_s1c3() {
     let input = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736";
     let mut potential_keys = BTreeMap::new();
     //println!("string={:?}, score = {score}", input);
-    for x in 1u8..255 {
-        let c = x as char;
-        let score = score_string(xor(hex2bytes(input), vec!['b' as u8]));
-        potential_keys.insert(score, c);
+    for x in 1u8..127 {
+        let score = NotNan::new(score_string(xor(hex2bytes(input), vec![x as u8]))).unwrap();
+        println!("c[{:?}]={:?}, score={:?}", x, x as char, score);
+        potential_keys.insert(score, x as char);
     }
-    println!("{:?}", x as char);
+    let best_match = potential_keys.last_key_value().unwrap().1;
+    println!("top match is {:?}: decoding...", best_match);
+    let decoded = xor(hex2bytes(input), vec![*best_match as u8]);
+    println!("decoded: {:?}", String::from_utf8(decoded));
+
 }
 
