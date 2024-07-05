@@ -8,3 +8,5 @@ edition = "2021"
 [dependencies]
 hex = "*"
 base64 = "*"
+bytes = "1.6.0"
+ordered-float = "4.2.1"
