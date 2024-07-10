@@ -1,5 +1,6 @@
 use std::cmp;
 use std::str;
+use std::fs;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 use ordered_float::NotNan;
@@ -60,22 +61,6 @@ fn test_fixed_key_xor() {
     assert_eq!(hexor(input,key), "000302050407")
 }
 
-const WEIGHTS: [i32; 26] = [855, 160 , 316, 387, 1210, 218, 209, 496, 733, 22, 81, 421, 253, 717, 747, 207, 10, 633, 673, 894, 268, 106, 183, 19, 172, 11 ];
-
-//fn weight_of(c : impl 
-
-fn weight_of(c: char) -> Option<i32> {
-    let letter = c.to_ascii_uppercase();
-    match letter {
-        'A'..='Z' => Some(WEIGHTS[letter as usize - 'A' as usize]),
-        _ => None,
-    }
-}
-
-fn lookup_letter_weight(letters: impl IntoIterator<Item = char>) -> i32 {
-    letters.into_iter().filter_map(weight_of).sum()
-}
-
 fn make_golden_hist() -> HashMap<char, f32> {
     let mut golden = HashMap::new();
 
@@ -114,7 +99,7 @@ fn make_golden_hist() -> HashMap<char, f32> {
 const OTHER_BUCKET: char = '~'; // this can be anything outside A-Z, even if it appears in input
                                 // str it won't interfere with calculation
 
-fn make_hist(input : Vec<u8>) -> HashMap<char, f32> {
+fn make_hist(input : &[u8]) -> HashMap<char, f32> {
     let mut counter = HashMap::new();
 
     for c in input.into_iter() {
@@ -149,7 +134,7 @@ fn hist_lookup(letter: char, hist: HashMap<char, f32>) -> f32 {
     }
 }
 
-fn score_string_hist(input : Vec<u8>) -> f32 {
+fn score_string_hist(input : &[u8]) -> f32 {
     let test = make_hist(input);
     let golden = make_golden_hist();
 
@@ -157,21 +142,54 @@ fn score_string_hist(input : Vec<u8>) -> f32 {
     return r;
 }
 
-#[test] // Set 1 challenge 3
-fn test_s1c3() {
-    let golden = make_golden_hist();
-    let input = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736";
+fn find_key(input: &str) -> char {
+
     let mut potential_keys = BTreeMap::new();
     //println!("string={:?}, score = {score}", input);
     for x in 1u8..127 {
         let test = xor(hex2bytes(input), vec![x as u8]);
-        let score = NotNan::new(score_string_hist(test.clone())).unwrap();
+        let score = NotNan::new(score_string_hist(&test)).unwrap();
         potential_keys.insert(score, x as char);
     }
-    let best_match = potential_keys.last_key_value().unwrap().1;
-    println!("top match is {:?}: decoding...", best_match);
-    let decoded = xor(hex2bytes(input), vec![*best_match as u8]);
-    println!("decoded: {:?}", String::from_utf8(decoded));
+    return *potential_keys.last_key_value().unwrap().1;
 
 }
 
+#[test] // Set 1 challenge 3
+fn s1c3() {
+    let input = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736";
+
+    let key = find_key(input);
+    assert_eq!(key, 'X');
+    let decoded = match String::from_utf8( xor(hex2bytes(input), vec![key as u8])) {
+        Ok(decoded) => assert_eq!(decoded, "Cooking MC's like a pound of bacon"),
+        Err(_) => return,
+    };
+    println!("decoded: {:?}", decoded);
+}
+
+#[test] // Set 1 challenge 4
+fn s1c4() {
+    let file_path = "s1c4_data.txt";
+    let contents = fs::read_to_string(file_path)
+        .expect("Should have been able to read the file");
+
+    let mut potential_matches = BTreeMap::new();
+    for line in contents.split("\n") {
+        let linebytes = hex2bytes(line);
+        let key = find_key(line);
+        let decoded = String::from_utf8(xor(&linebytes, vec![key as u8]));
+        if decoded.is_err() { continue }
+        let score = NotNan::new(score_string_hist(&linebytes)).unwrap();
+        potential_matches.insert(score, (linebytes, key));
+    }
+    let (_, (best_cipher, best_key)) = potential_matches.last_key_value().unwrap();
+    let result = xor(best_cipher, vec![*best_key as u8]);
+    assert_eq!(result, b"Now that the party is jumping\n");
+    println!("result={:?}", String::from_utf8(result));
+}
+
+
+fn main() {
+    println!("hello world");
+}
